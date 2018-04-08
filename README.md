@@ -1,5 +1,5 @@
 # urh-ETH_Comfort_decode_plugin
-Universal Radio Hacker (urh) external decoding plugin to decode eQ-3/Technoline ETH Comfort messages, which
+Universal Radio Hacker (urh) external decoding plugin to decode eQ-3/ELV/Technoline ETH comfort messages, which
 use Manchester code and bit stuffing
 
 simply set the permissions to 755 to make the script executable:
