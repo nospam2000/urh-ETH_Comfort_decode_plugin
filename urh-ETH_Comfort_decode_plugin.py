@@ -86,6 +86,14 @@ def decodeTelegram(telegram) :
 		streamIdx ^= 0x01 # toggle between odd and even stream interpretation
 		dataBits += 1
 
+def usage() :
+	print sys.argv[0], "d <data>"
+	print "<data> is the raw bitstream captured e.g. with urh"
+
+
 # Main
-decodeTelegram(sys.argv[1])
-sys.stdout.write("\n")
+if len(sys.argv) >= 3 and sys.argv[1] == "d" :
+	decodeTelegram(sys.argv[2])
+	sys.stdout.write("\n")
+else :
+	usage()
