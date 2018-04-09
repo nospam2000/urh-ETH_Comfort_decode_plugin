@@ -27,6 +27,7 @@ def printByte(byte) :
 #   telegram: string with '0' and '%1'
 def decodeTelegram(telegram) :
 	byte = [0xff, 0xff] # even and odd aligned interpretation
+	byteSyncDetect = [0xff, 0xff] # differentiate between decoded unstuffed and original stream. Sync must be detected only in original stream
 	oneCount = [0, 0]
 	streamIdx = 0 # there are two streams: the 'even' and the 'odd'
 	activeStream = -1 # the stream which is synced
@@ -57,6 +58,7 @@ def decodeTelegram(telegram) :
 
 		if bit < 0 :
 			byte[streamIdx] = 0xff # this makes sure that the sync word is only detected when it really start with a 0
+			byteSyncDetect[streamIdx] = 0xff
 			if streamIdx == activeStream :
 				activeStream = -1
 				state = 1
@@ -65,8 +67,10 @@ def decodeTelegram(telegram) :
 				prevByte = byte[streamIdx]
 				byte[streamIdx] = ((byte[streamIdx] >> 1) | (bit << 7)) & 0xff # bit order: LSB first
 				#byte[streamIdx] = ((byte[streamIdx] << 1) | bit) & 0xff # bit order: MSB first
-				if byte[streamIdx] == 0x7E:
-					#print "Sync found at position {:d}".format(pos)
+				byteSyncDetect[streamIdx] = ((byteSyncDetect[streamIdx] >> 1) | (bit << 7)) & 0xff # bit order: LSB first
+
+				if byteSyncDetect[streamIdx] == 0x7E:
+					#print "Sync found at position {:d}".format(dataBits)
 					state = 2 # sync found, parse data
 					dataBits = 0
 					activeStream = streamIdx
