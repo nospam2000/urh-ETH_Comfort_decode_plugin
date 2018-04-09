@@ -57,38 +57,35 @@ def decodeTelegram(telegram) :
 			oneCount[streamIdx] = 0
 
 		if bit < 0 :
-			byte[streamIdx] = 0xff # this makes sure that the sync word is only detected when it really start with a 0
-			byteSyncDetect[streamIdx] = 0xff
+			byte[streamIdx] = 0xff
+			byteSyncDetect[streamIdx] = 0xff # this makes sure that the sync word is only detected when it really start with a 0
 			if streamIdx == activeStream :
 				activeStream = -1
 				state = 1
-		else :
-			if (state == 1) or (state == 2) :
-				prevByte = byte[streamIdx]
-				byte[streamIdx] = ((byte[streamIdx] >> 1) | (bit << 7)) & 0xff # bit order: LSB first
-				#byte[streamIdx] = ((byte[streamIdx] << 1) | bit) & 0xff # bit order: MSB first
-				byteSyncDetect[streamIdx] = ((byteSyncDetect[streamIdx] >> 1) | (bit << 7)) & 0xff # bit order: LSB first
-
-				if byteSyncDetect[streamIdx] == 0x7E:
-					#print "Sync found at position {:d}".format(dataBits)
-					state = 2 # sync found, parse data
-					dataBits = 0
-					activeStream = streamIdx
-					if firstLine :
-						firstLine = False
-					else :
-						sys.stdout.write("\n")
-			if (state == 2) and (activeStream == streamIdx):
-				if stuffed :
+		elif (state == 1) or (state == 2) :
+			byteSyncDetect[streamIdx] = ((byteSyncDetect[streamIdx] >> 1) | (bit << 7)) & 0xff # bit order: LSB first
+			if byteSyncDetect[streamIdx] == 0x7E:
+				#print "Sync found at position {:d}".format(dataBits)
+				state = 2 # sync found, parse data
+				dataBits = 0
+				activeStream = streamIdx
+				if firstLine :
+					firstLine = False
+				else :
+					sys.stdout.write("\n")
+				printByte(byteSyncDetect[streamIdx])
+			elif (state == 2) and (activeStream == streamIdx):
+				if not stuffed :
+					byte[streamIdx] = ((byte[streamIdx] >> 1) | (bit << 7)) & 0xff # bit order: LSB first
+					#byte[streamIdx] = ((byte[streamIdx] << 1) | bit) & 0xff # bit order: MSB first
+					dataBits += 1
+				#else :
 					#print " [Stuffed bit found at position {:d}]".format(dataBits)
-					byte[streamIdx] = prevByte 
-					dataBits -= 2
-				elif (dataBits % 16) == 0 :
+				if (dataBits % 8) == 0 :
 					printByte(byte[streamIdx])
 
 		#print " s{:d} b{:02X} i{:s} bits{:03d} sym{:d} 1cnt{:03d} bit{:2d}".format(streamIdx, byte[streamIdx], i, dataBits, symbol, oneCount[streamIdx], bit)
 		streamIdx ^= 0x01 # toggle between odd and even stream interpretation
-		dataBits += 1
 
 def usage() :
 	print sys.argv[0], "d <data>"
