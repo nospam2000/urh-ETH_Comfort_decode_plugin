@@ -20,20 +20,96 @@ def printByte(byte) :
 	#sys.stdout.write(" {:02x}".format(byte))
 	#sys.stdout.write(" {:02x}\n".format(byte))
 
+
+oneCount = 0
+syncBits = 0 # at the beginning we are synced by definition
+
+def encodeByte(byte, bitCount) :
+	outString = ''
+	#outString += '[bc={:d}]'.format(bitCount)
+	global oneCount
+	global syncBits
+	#byte = byte << (8 - bitCount) // left align
+	for i in range(bitCount) :
+		bit = (byte & 0x01)
+		byte = (byte >> 1) & 0xff
+		# Manchester encode
+		if bit : # 10
+			outString += '10'
+			if syncBits >= 8 : # bit stuffing after five one-bits
+				oneCount += 1
+				if oneCount >= 5 :
+					outString += '01'
+					oneCount = 0
+			else :
+				oneCount = 0
+		else : # 01
+			outString += '01'
+			oneCount = 0
+		syncBits += 1
+	return outString
+
+
+# Manchester encoding (according to G. E. Thomas' convention: 01 => 0, 10 => 1)
+# with bit-stuffing (see 'SDLC' in https://en.wikipedia.org/wiki/Bit_stuffing)
+# bit order is 'LSB first', sync-word (decoded) is 0x7E which is %0110101010101001 as unencoded raw value
+# parameters:
+#   telegram: string with '0' and '1'
+def encodeTelegram(telegram) :
+	global oneCount
+	oneCount = 0
+	global syncBits
+	syncBits = 0
+	outString = ' '
+	dataBits = 0 # at the beginning we are synced by definition
+	firstLine = False # omit newline before first line
+	byte = 0
+
+	for i in telegram :
+		if i == '|' or i == '\n' :
+			if dataBits > 0 :
+				outString += encodeByte(byte, dataBits)
+			#if firstLine :
+			#	firstLine = False
+			#else :
+			#	outString += '\n'
+			outString += '|'
+			dataBits = 0
+			syncBits = 0
+			oneCount = 0
+			continue
+		elif i == '1' :
+			bit = 1
+		elif i == '0' :
+			bit = 0
+		else :
+			continue # ignore any unknown characters in the input stream
+
+		byte = ((byte << 1) | bit) & 0xff
+		dataBits += 1
+		if dataBits >= 8 :
+			outString += encodeByte(byte, 8)
+			dataBits = 0
+
+	if dataBits > 0 :
+		outString += encodeByte(byte, dataBits)
+	sys.stdout.write(outString)
+
+
 # Manchester decoding (according to G. E. Thomas' convention: 01 => 0, 10 => 1)
 # with bit-stuffing (see 'SDLC' in https://en.wikipedia.org/wiki/Bit_stuffing)
 # bit order is 'LSB first', sync-word (decoded) is 0x7E which is %0110101010101001 as unencoded raw value
 # parameters:
-#   telegram: string with '0' and '%1'
+#   telegram: string with '0' and '1'
 def decodeTelegram(telegram) :
-	byte = [0xff, 0xff] # even and odd aligned interpretation
+	byte = [0x00, 0x00] # even and odd aligned interpretation
 	byteSyncDetect = [0xff, 0xff] # differentiate between decoded unstuffed and original stream. Sync must be detected only in original stream
 	oneCount = [0, 0]
 	streamIdx = 0 # there are two streams: the 'even' and the 'odd'
 	activeStream = -1 # the stream which is synced
-	dataBits = 0 # number of input bits after the sync
+	dataBits = 0 # number of data bits after the sync
 	symbol = 0 # the current manchester symbol
-	state = 1 # 0 = look for preamble (TODO: not implemented), 1 = look for sync word, 2 = sync found / parse data
+	state = 1 # state machine: 0 = look for preamble (TODO: not implemented), 1 = look for sync word, 2 = synced / parse data
 	firstLine = True # omit newline before first line
 	for i in telegram :
 		if i != '0' and i != '1' : # ignore any unknown characters in the input stream
@@ -57,7 +133,7 @@ def decodeTelegram(telegram) :
 			oneCount[streamIdx] = 0
 
 		if bit < 0 :
-			byte[streamIdx] = 0xff
+			byte[streamIdx] = 0x00
 			byteSyncDetect[streamIdx] = 0xff # this makes sure that the sync word is only detected when it really start with a 0
 			if streamIdx == activeStream :
 				activeStream = -1
@@ -74,17 +150,19 @@ def decodeTelegram(telegram) :
 				else :
 					sys.stdout.write("\n")
 				printByte(byteSyncDetect[streamIdx])
+				byte[streamIdx] = 0x00
+				byteSyncDetect[streamIdx] = 0xff # this makes sure that the sync word is only detected when it really start with a 0
 			elif (state == 2) and (activeStream == streamIdx):
-				if not stuffed :
+				if not stuffed and oneCount[streamIdx] < 6 :
 					byte[streamIdx] = ((byte[streamIdx] >> 1) | (bit << 7)) & 0xff # bit order: LSB first
 					#byte[streamIdx] = ((byte[streamIdx] << 1) | bit) & 0xff # bit order: MSB first
 					dataBits += 1
+					if (dataBits % 8) == 0 :
+						printByte(byte[streamIdx])
 				#else :
 					#print " [Stuffed bit found at position {:d}]".format(dataBits)
-				if (dataBits % 8) == 0 :
-					printByte(byte[streamIdx])
 
-		#print " s{:d} b{:02X} i{:s} bits{:03d} sym{:d} 1cnt{:03d} bit{:2d}".format(streamIdx, byte[streamIdx], i, dataBits, symbol, oneCount[streamIdx], bit)
+		#print " s{:d} syn{:02X} b{:02X} i{:s} bits{:03d} sym{:d} 1cnt{:03d} bit{:2d}".format(streamIdx, byteSyncDetect[streamIdx], byte[streamIdx], i, dataBits, symbol, oneCount[streamIdx], bit)
 		streamIdx ^= 0x01 # toggle between odd and even stream interpretation
 
 def usage() :
@@ -95,6 +173,9 @@ def usage() :
 # Main
 if len(sys.argv) >= 3 and sys.argv[1] == "d" :
 	decodeTelegram(sys.argv[2])
+	sys.stdout.write("\n")
+elif len(sys.argv) >= 3 and sys.argv[1] == "e" :
+	encodeTelegram(sys.argv[2])
 	sys.stdout.write("\n")
 else :
 	usage()
