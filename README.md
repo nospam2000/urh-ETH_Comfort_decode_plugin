@@ -6,11 +6,11 @@ simply set the permissions to 755 to make the script executable:
 chmod 755 urh-ETH_Comfort_decode_plugin.py
 
 start the plugin in urh as external decoding program with:
-urh-ETH_Comfort_decode_plugin.py d
+urh-ETH_Comfort_decode_plugin.py **d**
 
 
 to use it as external encoding program, use the following parameter:
-urh-ETH_Comfort_decode_plugin.py e
+urh-ETH_Comfort_decode_plugin.py **e**
 
 
 Refer to https://github.com/jopohl/urh/wiki/Decodings#work-with-decodings for more information on how to use external decoding.
