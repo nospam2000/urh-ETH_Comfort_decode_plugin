@@ -60,7 +60,7 @@ def encodeTelegram(telegram) :
 	oneCount = 0
 	global syncBits
 	syncBits = 0
-	outString = ' '
+	outString = ''
 	dataBits = 0 # at the beginning we are synced by definition
 	firstLine = False # omit newline before first line
 	byte = 0
