@@ -5,7 +5,8 @@ use Manchester code and bit stuffing.
 Actually the plugin implements SDLC/HDLC decoding and encoding so it might also work with other protocols:
  * sync word = 0110101010101001 (decoded this will show up as 0x7E)
  * LSB (least significant bit) is sent first
- * stuff one zero-bit (01) after 5 one-bits (01), except in the sync word
+ * use Manchester code (01 => 0, 10 => 1)
+ * stuff one zero-bit (01) after 5 one-bits (10), except in the sync word
 
 To use the plugin you need to have python installed. Under Linux/Mac OSX set the permissions to 755 to make the script executable:
 chmod 755 urh-ETH_Comfort_decode_plugin.py
