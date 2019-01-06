@@ -9,6 +9,10 @@
 #   More information can be found
 #     in the discussion thread https://www.mikrocontroller.net/topic/172034
 #     in the discussing thread https://jeelabs.net/boards/7/topics/2626
+#     in the blog post https://os.mbed.com/users/charly/notebook/connecting-a-radio-window-shutter-contact-to-knx/
+#       from Karl Zweimueller and the source files belonging to the post:
+#         https://os.mbed.com/users/charly/code/eth_comfort_test/
+#         https://os.mbed.com/users/charly/code/eth_comfort_freebus/
 
 # Copyright (c) 2018 by Michael Dreher <michael(a)5dot1.de>
 # Multi-License: you can either use the GNU General Public License v3.0 or the MIT license
@@ -166,9 +170,13 @@ def decodeTelegram(telegram) :
 		streamIdx ^= 0x01 # toggle between odd and even stream interpretation
 
 def usage() :
-	print sys.argv[0], "d <data>"
-	print "<data> is the raw bitstream captured e.g. with urh"
-
+	sys.stdout.write("Usage:\n")
+	sys.stdout.write("  urh-ETH_Comfort_decode_plugin.py d <data>\n")
+	sys.stdout.write("  urh-ETH_Comfort_decode_plugin.py e <data>\n")
+	sys.stdout.write("  'd' is for decoding and 'e' for encoding the data\n")
+	sys.stdout.write("  <data> is the raw bitstream captured e.g. with urh\n")
+	sys.stdout.write("  for example:\n")
+	sys.stdout.write("    urh-ETH_Comfort_decode_plugin.py d 0110101010101001100101011001101001010101101001011001010\n")
 
 # Main
 if len(sys.argv) >= 3 and sys.argv[1] == "d" :
