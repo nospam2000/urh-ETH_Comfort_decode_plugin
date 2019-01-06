@@ -22,3 +22,12 @@ urh-ETH_Comfort_decode_plugin.py **e**
 Refer to https://github.com/jopohl/urh/wiki/Decodings#work-with-decodings for more information on how to use external decoding.
 
 Each telegram consists of multiple repetitions, each one starts with 0x7E.
+
+To test if the script is working in your environment, execute the following command (all in one long commandline):
+```
+$ urh-ETH_Comfort_decode_plugin.py d 01101010101010011001010110011010010101011010010110010101010101011001011010101001101010010110101001010101010101010101010101010101011010100110101001100110101001011010101010011010011001100101011001
+```
+and you should get the following result:
+```
+011111101101000100110000000000010111100111100111000000000000000011101110001110100111111101000101
+```
